@@ -1,3 +1,5 @@
+require 'softlayer_api'
+
 # fog:SoftLayer:<datacenter>
 class Chef
 module Provisioning
@@ -14,7 +16,7 @@ module FogDriver
 
       def self.compute_options_for(provider, id, config)
         new_compute_options = {}
-        new_compute_options[:provider] = 'SoftLayerIbm'
+        new_compute_options[:provider] = 'SoftLayer'
 
         new_config = { :driver_options => { :compute_options => new_compute_options }}
 
@@ -45,8 +47,16 @@ module FogDriver
         opts
       end
 
-      def find_floating_ips(server)
+      def find_floating_ips(server, action_handler)
           []
+      end
+
+      def wait_until_ready(action_handler, machine_spec, machine_options, server)
+          client = SoftLayer::Client.new
+          vs = SoftLayer::VirtualServer.server_with_id machine_spec.reference['server_id'], :client => client
+          Chef::Log.info("waiting for #{server.name} to be ready")
+          res = vs.wait_until_ready max_trials: 60, wait_for_transactions: true, seconds_between_tries: 2
+          Chef::Log.info("#{server.name} is ready: #{res}")
       end
     end
   end
